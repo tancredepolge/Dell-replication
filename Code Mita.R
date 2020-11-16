@@ -68,4 +68,5 @@ summary(reg_2b)
 reg_2c <- lm.cluster(data = mitaData_50, lhhequiv ~ pothuan_mita + mitaData_50$dpot + mitaData_50$'dpot^2'+ mitaData_50$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_50$district)
 summary(reg_2c)
 
+# Test change
 
