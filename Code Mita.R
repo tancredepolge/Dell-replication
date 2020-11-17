@@ -2,6 +2,10 @@ library(tidyverse)
 library(rio)
 library(miceadds) ## Contains the lm.cluster function. Have to install the package 'mice' as well. 
 library(jtools)
+library(multiwayvcov)
+library(stargazer)
+library(sandwich)
+library(lmtest)
 
 mitaData <- import('./mitaData.dta')
 View(mitaData)
@@ -26,10 +30,17 @@ mitaData_75 <- filter(mitaData, d_bnd < 75)
 mitaData_50 <- filter(mitaData, d_bnd < 50)
 
 # Regression with distance to boundary < 100 km 
-reg_1a <- lm.cluster(data = mitaData_100, lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_100$district)
-summary(reg_1a)
-lm.reg_1a <- lm(lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, data = mitaData_100)
-summary(lm.reg_1a)
+reg_1a1 <- lm.cluster(data = mitaData_100, lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_100$district)
+summary(reg_1a1)
+
+
+reg_1a <- lm(lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, data = mitaData_100)
+
+reg_1a_vcov <- cluster.vcov(reg_1a, cluster = mitaData_100$district)
+
+
+stargazer(reg_1a, coeftest(reg_1a,vcovHC), type = "text")
+
 jtools::summ(lm.reg_1a, cluster = "mitaData_100$district")
 
 
@@ -67,6 +78,4 @@ summary(reg_2b)
 # Regression with distance to boundary < 50 km 
 reg_2c <- lm.cluster(data = mitaData_50, lhhequiv ~ pothuan_mita + mitaData_50$dpot + mitaData_50$'dpot^2'+ mitaData_50$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_50$district)
 summary(reg_2c)
-
-# Test change
 
