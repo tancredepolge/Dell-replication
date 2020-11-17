@@ -1,28 +1,24 @@
 library(tidyverse)
 library(rio)
-library(miceadds) ## Contains the lm.cluster function. Have to install the package 'mice' as well. 
-library(jtools)
-library(multiwayvcov)
-library(stargazer)
-library(sandwich)
 library(lmtest)
+library(sandwich)
+library(stargazer)
 
 mitaData <- import('./mitaData.dta')
-View(mitaData)
-
+#View(mitaData)
 
     #### EXERCISE 1 ####
 
     ## Question C ##
 
 # Constructing the longitude and latitude polynomial terms
-mitaData$'lon^2' <- mitaData$lon^2
-mitaData$'lat^2' <- mitaData$lat^2
-mitaData$'lon*lat' <- mitaData$lon * mitaData$lat
-mitaData$'lon^3' <- mitaData$lon^3
-mitaData$'lat^3' <- mitaData$lat^3
-mitaData$'lon^2*lat' <- mitaData$lon^2 * mitaData$lat
-mitaData$'lon*lat^2' <- mitaData$lon * mitaData$lat^2
+mitaData$lon2 <- mitaData$lon^2
+mitaData$lat2 <- mitaData$lat^2
+mitaData$lonlat <- mitaData$lon * mitaData$lat
+mitaData$lon3 <- mitaData$lon^3
+mitaData$lat3 <- mitaData$lat^3
+mitaData$lon2lat <- mitaData$lon^2 * mitaData$lat
+mitaData$lonlat2 <- mitaData$lon * mitaData$lat^2
 
 #  Constructing samples according to distances to mita boundaries
 mitaData_100 <- filter(mitaData, d_bnd < 100)
@@ -30,34 +26,33 @@ mitaData_75 <- filter(mitaData, d_bnd < 75)
 mitaData_50 <- filter(mitaData, d_bnd < 50)
 
 # Regression with distance to boundary < 100 km 
-reg_1a1 <- lm.cluster(data = mitaData_100, lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_100$district)
-summary(reg_1a1)
-
-
-reg_1a <- lm(lhhequiv ~ pothuan_mita + mitaData_100$'lon^2' + mitaData_100$'lat^2' + mitaData_100$'lon*lat' + mitaData_100$'lon^3' + mitaData_100$'lat^3' + mitaData_100$'lon^2*lat' + mitaData_100$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, data = mitaData_100)
-
-reg_1a_vcov <- cluster.vcov(reg_1a, cluster = mitaData_100$district)
-
-
-stargazer(reg_1a, coeftest(reg_1a,vcovHC), type = "text")
-
-jtools::summ(lm.reg_1a, cluster = "mitaData_100$district")
-
+reg_1a <- lm(lhhequiv ~ pothuan_mita 
+             + lon + lat + lon2 + lat2 + lonlat + lon3 + lat3 + lon2lat + lonlat2
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_100)
+reg_1a_cse <- coeftest(reg_1a, vcovCL, cluster = mitaData_100$district)[,2]
 
 # Regression with distance to boundary < 75 km 
-reg_1b <- lm.cluster(data = mitaData_75, lhhequiv ~ pothuan_mita + mitaData_75$'lon^2' + mitaData_75$'lat^2' + mitaData_75$'lon*lat' + mitaData_75$'lon^3' + mitaData_75$'lat^3' + mitaData_75$'lon^2*lat' + mitaData_75$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_75$district )
-summary(reg_1b)
+reg_1b <- lm(lhhequiv ~ pothuan_mita 
+             + lon + lat + lon2 + lat2 + lonlat + lon3 + lat3 + lon2lat + lonlat2
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_75)
+reg_1b_cse <- coeftest(reg_1b,vcovCL, cluster = mitaData_75$district)[,2]
 
 # Regression with distance to boundary < 50 km 
-reg_1c <- lm.cluster(data = mitaData_50, lhhequiv ~ pothuan_mita + mitaData_50$'lon^2' + mitaData_50$'lat^2' + mitaData_50$'lon*lat' + mitaData_50$'lon^3' + mitaData_50$'lat^3' + mitaData_50$'lon^2*lat' + mitaData_50$'lon*lat^2' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_50$district)
-summary(reg_1c)
+reg_1c <- lm(lhhequiv ~ pothuan_mita 
+             + lon + lat + lon2 + lat2 + lonlat + lon3 + lat3 + lon2lat + lonlat2
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_50)
+reg_1c_cse <- coeftest(reg_1c,vcovCL, cluster = mitaData_50$district)[,2]
 
+stargazer(reg_1a, reg_1b, reg_1c, se = list(reg_1a_cse, reg_1b_cse, reg_1c_cse), keep = "pothuan_mita", type = "text")
 
     ## Question D ##
 
 # Constructing the distance to Potosi polynomial terms
-mitaData$'dpot^2' <- mitaData$dpot^2
-mitaData$'dpot^3' <- mitaData$dpot^3
+mitaData$dpot2 <- mitaData$dpot^2
+mitaData$dpot3 <- mitaData$dpot^3
 
 #  Re-constructing samples according to distances to mita boundaries (with the new variables dpot^2 and dpot^3)
 mitaData_100 <- filter(mitaData, d_bnd < 100)
@@ -65,17 +60,24 @@ mitaData_75 <- filter(mitaData, d_bnd < 75)
 mitaData_50 <- filter(mitaData, d_bnd < 50)
 
 # Regression with distance to boundary < 100 km 
-reg_2a1 <- lm.cluster(data = mitaData_100, lhhequiv ~ pothuan_mita + mitaData_100$dpot + mitaData_100$'dpot^2'+ mitaData_100$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_100$district)
-summary(reg_2a1)
-reg_2a2 <- lm(lhhequiv ~ pothuan_mita + mitaData_100$dpot + mitaData_100$'dpot^2'+ mitaData_100$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, data = mitaData_100)
-summary(reg_2a2)
-summary(reg_2a2, cluster = "mitaData_100$district")
+reg_2a <- lm(lhhequiv ~ pothuan_mita 
+             + dpot + dpot2 + dpot3 
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_100)
+reg_2a_cse <- coeftest(reg_2a,vcovCL, cluster = mitaData_100$district)[,2]
 
 # Regression with distance to boundary < 75 km 
-reg_2b <- lm.cluster(data = mitaData_75, lhhequiv ~ pothuan_mita + mitaData_75$dpot + mitaData_75$'dpot^2'+ mitaData_75$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_75$district)
-summary(reg_2b)
+reg_2b <- lm(lhhequiv ~ pothuan_mita 
+             + dpot + dpot2 + dpot3 
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_75)
+reg_2b_cse <- coeftest(reg_2b,vcovCL, cluster = mitaData_75$district)[,2]
 
 # Regression with distance to boundary < 50 km 
-reg_2c <- lm.cluster(data = mitaData_50, lhhequiv ~ pothuan_mita + mitaData_50$dpot + mitaData_50$'dpot^2'+ mitaData_50$'dpot^3' + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, cluster = mitaData_50$district)
-summary(reg_2c)
+reg_2c <- lm(lhhequiv ~ pothuan_mita 
+             + dpot + dpot2 + dpot3 
+             + elv_sh + slope + infants + children + adults + bfe4_1 + bfe4_2 + bfe4_3, 
+             data = mitaData_50)
+reg_2c_cse <- coeftest(reg_2c,vcovCL, cluster = mitaData_50$district)[,2]
 
+stargazer(reg_2a, reg_2b, reg_2c, se = list(reg_2a_cse, reg_2b_cse, reg_2c_cse), keep = "pothuan_mita",type = "text") 
